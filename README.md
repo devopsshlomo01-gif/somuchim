@@ -1,56 +1,78 @@
-# Welcome to your Expo app 👋
+# סמוכים
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+אפליקציה לאנדרואיד ולאייפון שמחברת בין הורים לבייביסיטרים מהשכונה.
+נבנתה ב-Expo (React Native) עם Supabase בצד השרת.
 
-## Get started
+## מה עובד בגרסה הזו (0.1)
+- כניסה בלי סיסמה, עם קוד חד-פעמי ב-SMS או במייל
+- הרשמה: שם, תפקיד (הורה, בייביסיטר או שניהם) ואישור תנאי שימוש
+- חיפוש בייביסיטריות מאומתות, עם סינונים, ופרופיל בייביסיטר עם ביקורות והמלצות
+- פרופיל בייביסיטר: תיאור, אזור, תעריף, שמירה בבית ופרטי ביט
+- משמרות: רשימה בלבד בשלב זה
+- מסך אודות: פרטי המפתח ותיבת הודעות. כל הודעה נשמרת במסד הנתונים ונשלחת למייל של המפתח בלי שהכתובת מופיעה באפליקציה
+- הרשאות במסד הנתונים: משתמש לא יכול לסמן את עצמו כמאומת או כאיש צוות, ולא רואה נתונים פרטיים של אחרים
 
-1. Install dependencies
+## הגדרה ראשונית (פעם אחת)
 
-   ```bash
-   npm install
-   ```
+### 1. Supabase
+1. פותחים פרויקט ב-[supabase.com](https://supabase.com), באזור **Frankfurt (eu-central-1)**.
+2. **SQL Editor**: מדביקים את התוכן של `supabase/migrations/20261125000000_init.sql` ולוחצים Run.
+3. **Authentication → Sign In / Providers**:
+   - **Phone**: מפעילים, בוחרים ב-**Twilio Verify** וממלאים Account SID, Auth Token ו-Verify Service SID מחשבון Twilio.
+   - **Email**: מפעילים.
+4. **Authentication → Email Templates → Magic Link**: מוסיפים לתבנית את הקוד `{{ .Token }}`, כדי שבמייל יופיע קוד בן 6 ספרות ולא רק קישור.
+5. **Project Settings → API**: מעתיקים את ה-Project URL ואת ה-anon key לקובץ `.env` (לפי `.env.example`).
 
-2. Start the app
+### 2. הודעות למייל שלך (תיבת "שליחת הודעה למפתח")
+1. פותחים חשבון ב-[resend.com](https://resend.com) ומאמתים דומיין שולח, או משתמשים בכתובת הבדיקה שלהם.
+2. מעלים את הפונקציה: `npx supabase functions deploy notify-feedback --no-verify-jwt`
+3. **Edge Functions → Secrets**: מגדירים `RESEND_API_KEY`, `DEV_EMAIL` (המייל שלך), `MAIL_FROM` ו-`WEBHOOK_SECRET` (מחרוזת אקראית).
+4. **Database → Webhooks → Create**: טבלה `feedback_messages`, אירוע Insert, סוג Supabase Edge Function, הפונקציה `notify-feedback`, ובכותרות מוסיפים `x-webhook-secret` עם אותה מחרוזת אקראית.
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+### 3. להפוך את עצמך לצוות
+אחרי שנרשמת באפליקציה, מריצים ב-SQL Editor:
+```sql
+update profiles set is_staff = true where full_name = 'השם שלך';
 ```
+איש צוות רואה במסך האודות את ההודעות שהתקבלו, ויכול לסמן בייביסיטריות כמאומתות:
+```sql
+update sitter_profiles set id_verified = true, is_listed = true where id = '...';
+```
+(בשלב הבא זה יעבור לפאנל ניהול בתוך האפליקציה.)
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+## הרצה בטלפון שלך (פיתוח)
+```bash
+npm install
+cp .env.example .env   # וממלאים
+npx expo start
+```
+מתקינים בטלפון את **Expo Go** מחנות האפליקציות וסורקים את קוד ה-QR. בפתיחה הראשונה האפליקציה עוברת לימין-לשמאל, וייתכן שצריך לסגור ולפתוח אותה פעם אחת.
 
-### Other setup steps
+## בניית APK לבודקים באנדרואיד
+```bash
+npm install -g eas-cli
+eas login
+eas init                 # מקשר את הפרויקט לחשבון Expo שלך
+eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value https://... --environment preview
+eas env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value ... --environment preview
+eas build -p android --profile preview
+```
+בסוף הבנייה מתקבל קישור להורדת APK, שאפשר לשלוח לבודקים.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+לפרסום ב-Google Play: `eas build -p android --profile production` ואחר כך `eas submit -p android`. הקובץ נשלח למסלול הבדיקה הפנימי (internal) כטיוטה.
 
-## Learn more
+## אייפון
+אותו קוד. `eas build -p ios --profile preview` דורש חשבון Apple Developer (99$ לשנה). לא צריך מחשב Mac.
 
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## מבנה הפרויקט
+```
+src/app/                 המסכים (expo-router)
+  sign-in.tsx            כניסה עם קוד
+  welcome.tsx            השלמת הרשמה
+  (tabs)/                חיפוש, משמרות, פרופיל, אודות
+  sitter/[id].tsx        פרופיל בייביסיטר
+src/components/ui.tsx    רכיבי עיצוב משותפים
+src/lib/                 Supabase, התחברות, ערכת צבעים, בדיקות קלט
+supabase/migrations/     סכמת מסד הנתונים והרשאות
+supabase/functions/      פונקציות שרת (שליחת הודעות למייל)
+```
