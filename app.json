@@ -7,7 +7,10 @@
     "icon": "./assets/images/icon.png",
     "scheme": "somuchim",
     "userInterfaceStyle": "automatic",
-    "platforms": ["android", "ios"],
+    "platforms": [
+      "android",
+      "ios"
+    ],
     "ios": {
       "bundleIdentifier": "il.somuchim.app",
       "supportsTablet": false,
@@ -28,20 +31,44 @@
     },
     "plugins": [
       "expo-router",
-      ["expo-localization", { "supportsRTL": true, "forcesRTL": true }],
-      ["expo-splash-screen", { "backgroundColor": "#2F6F5E", "image": "./assets/images/splash-icon.png", "imageWidth": 96 }],
-      ["expo-location", { "locationWhenInUsePermission": "סמוכים משתמשת במיקום פעם אחת בצ׳ק-אין ובצ׳ק-אאוט, כדי לאשר להורים שהגעת. אין מעקב רציף." }],
-      ["expo-image-picker", {
-        "photosPermission": "כדי להעלות תמונת פרופיל, סרטון היכרות ומסמכים לאימות.",
-        "cameraPermission": "כדי לצלם תמונת פרופיל, סלפי לאימות זהות וסרטון היכרות.",
-        "microphonePermission": "כדי להקליט את הקול בסרטון ההיכרות."
-      }]
+      [
+        "expo-localization",
+        {
+          "supportsRTL": true,
+          "forcesRTL": true
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2F6F5E",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 96
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "סמוכים משתמשת במיקום פעם אחת בצ׳ק-אין ובצ׳ק-אאוט, כדי לאשר להורים שהגעת. אין מעקב רציף."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "כדי להעלות תמונת פרופיל, סרטון היכרות ומסמכים לאימות.",
+          "cameraPermission": "כדי לצלם תמונת פרופיל, סלפי לאימות זהות וסרטון היכרות.",
+          "microphonePermission": "כדי להקליט את הקול בסרטון ההיכרות."
+        }
+      ]
     ],
     "experiments": {
       "reactCompiler": true
     },
     "extra": {
-      "eas": { "projectId": "" }
-    }
+      "eas": {
+        "projectId": "2aa5286e-0572-4e91-815f-ad14a86d911a"
+      }
+    },
+    "owner": "devopsshlomo01-gif"
   }
 }
