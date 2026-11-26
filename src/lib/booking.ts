@@ -27,8 +27,19 @@ export type ShiftCard = {
   status: string;
   check_in_at: string | null;
   check_out_at: string | null;
+  check_in_verified: boolean | null;
+  check_out_verified: boolean | null;
+  check_in_distance_m: number | null;
+  check_out_distance_m: number | null;
+  amount: number;
+  location: 'parent_home' | 'sitter_home';
+  kids: string | null;
+  notes: string | null;
   parent_name: string;
   sitter_name: string;
+  bit_phone: string | null;
+  bit_link: string | null;
+  reviewed: boolean;
 };
 
 const DAY_NAMES = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];

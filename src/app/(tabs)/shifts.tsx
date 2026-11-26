@@ -5,16 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button, Card, Chip, Row, T } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
-import {
-  dayLabel,
-  durationMinutes,
-  hhmm,
-  hoursLabel,
-  REQUEST_STATUS,
-  SHIFT_STATUS,
-  type RequestCard,
-  type ShiftCard,
-} from '@/lib/booking';
+import { ShiftItem } from '@/components/shift-item';
+import { dayLabel, durationMinutes, hhmm, hoursLabel, REQUEST_STATUS, type RequestCard, type ShiftCard } from '@/lib/booking';
 import { nis } from '@/lib/sitters';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
@@ -80,15 +72,6 @@ export default function Shifts() {
 
   const pending = requests.filter((r) => r.status === 'pending');
   const history = requests.filter((r) => r.status !== 'pending' && r.status !== 'accepted').slice(0, 5);
-  const fmtShift = (iso: string) =>
-    new Date(iso).toLocaleString('he-IL', {
-      timeZone: 'Asia/Jerusalem',
-      weekday: 'short',
-      day: 'numeric',
-      month: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
 
   const requestItem = (r: RequestCard) => {
     const { day, date } = dayLabel(r.start_date);
@@ -152,26 +135,17 @@ export default function Shifts() {
             {isSitter ? 'כשתאשרי בקשה, המשמרת תופיע כאן.' : 'אחרי שבייביסיטר תאשר בקשה, המשמרת תופיע כאן.'}
           </T>
         ) : (
-          shifts.map((s) => {
-            const [label, tone] = SHIFT_STATUS[s.status] ?? [s.status, 'plain'];
-            const mins = Math.round((new Date(s.ends_at).getTime() - new Date(s.starts_at).getTime()) / 60000);
-            return (
-              <Card key={s.id}>
-                <Row style={{ justifyContent: 'space-between' }}>
-                  <View style={{ gap: 2 }}>
-                    <T variant="h3">{isSitter ? `משפחת ${s.parent_name.split(' ').slice(-1)[0]}` : s.sitter_name}</T>
-                    <T variant="muted">
-                      {fmtShift(s.starts_at)} · {hoursLabel(mins)}
-                    </T>
-                  </View>
-                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                    <T style={{ fontWeight: '700' }}>{nis(Math.round((mins / 60) * s.hourly_rate))}</T>
-                    <Chip tone={tone} label={label} />
-                  </View>
-                </Row>
-              </Card>
-            );
-          })
+          shifts.map((s) => (
+            <ShiftItem
+              key={s.id}
+              s={s}
+              isSitter={isSitter}
+              onChanged={(msg) => {
+                if (msg) setNotice(msg);
+                load();
+              }}
+            />
+          ))
         )}
 
         {history.length ? (

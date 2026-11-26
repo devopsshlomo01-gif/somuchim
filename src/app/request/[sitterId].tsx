@@ -91,7 +91,7 @@ export default function NewRequest() {
   }
 
   return (
-    <Screen>
+    <Screen header>
       <T variant="h2">בקשת שמירה{firstName ? ` מ${firstName}` : ''}</T>
 
       <Card>

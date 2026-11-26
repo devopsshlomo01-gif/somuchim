@@ -15,7 +15,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useTheme } from '@/lib/theme';
 
-export function Screen({ children, scroll = true }: { children: ReactNode; scroll?: boolean }) {
+/** Page container. Pass `header` on stack screens that show a navigation header (it already handles the top inset). */
+export function Screen({ children, scroll = true, header = false }: { children: ReactNode; scroll?: boolean; header?: boolean }) {
   const t = useTheme();
   const body = scroll ? (
     <ScrollView contentContainerStyle={styles.screen} keyboardShouldPersistTaps="handled">
@@ -25,7 +26,7 @@ export function Screen({ children, scroll = true }: { children: ReactNode; scrol
     <View style={[styles.screen, { flex: 1 }]}>{children}</View>
   );
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={header ? [] : ['top']}>
       {body}
     </SafeAreaView>
   );

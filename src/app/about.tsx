@@ -67,7 +67,7 @@ export default function About() {
   }
 
   return (
-    <Screen>
+    <Screen header>
       <View style={{ alignItems: 'center', gap: 4, paddingVertical: 8 }}>
         <T variant="title" style={{ textAlign: 'center', fontSize: 36 }}>
           סמוכים

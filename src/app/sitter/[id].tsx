@@ -2,7 +2,8 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { Avatar, Button, Card, Chip, Row, Screen, T } from '@/components/ui';
+import { IntroVideo, Photo } from '@/components/media';
+import { Button, Card, Chip, Row, Screen, T } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
 import { colorFor, nis, type SitterCard } from '@/lib/sitters';
 import { supabase } from '@/lib/supabase';
@@ -35,7 +36,7 @@ export default function SitterProfile() {
   if (s === undefined) return <ActivityIndicator color={t.accent} style={{ marginTop: 60 }} />;
   if (s === null)
     return (
-      <Screen>
+      <Screen header>
         <T variant="h3">הפרופיל לא זמין</T>
       </Screen>
     );
@@ -43,9 +44,9 @@ export default function SitterProfile() {
   const avg = (r: Review) => (r.reliability + r.punctuality + r.with_kids + r.communication) / 4;
 
   return (
-    <Screen>
+    <Screen header>
       <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-        <Avatar name={s.full_name} size={76} color={colorFor(s.id)} />
+        <Photo path={s.photo_path} name={s.full_name} size={76} color={colorFor(s.id)} />
         <View style={{ flex: 1, gap: 4 }}>
           <T variant="h2">
             {s.full_name}
@@ -59,6 +60,7 @@ export default function SitterProfile() {
           </Row>
         </View>
       </View>
+      <IntroVideo path={s.video_path} emptyText="עוד אין סרטון היכרות" />
       {s.bio ? <T>{s.bio}</T> : null}
 
       <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -106,6 +108,13 @@ export default function SitterProfile() {
         ) : (
           <T variant="muted">עוד אין המלצות היכרות.</T>
         )}
+        {session?.user.id !== s.id ? (
+          <Button
+            kind="secondary"
+            title="אני מכיר/ה אותה – הוספת המלצה"
+            onPress={() => router.push({ pathname: '/vouch/[sitterId]', params: { sitterId: s.id, name: s.full_name } })}
+          />
+        ) : null}
       </Card>
 
       <Card soft>

@@ -2,7 +2,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 
-import { Avatar, Card, Chip, Row, Screen, T } from '@/components/ui';
+import { Photo } from '@/components/media';
+import { Card, Chip, Row, Screen, T } from '@/components/ui';
 import { colorFor, nis, type SitterCard } from '@/lib/sitters';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
@@ -92,7 +93,7 @@ export default function Search() {
         <Pressable key={s.id} onPress={() => router.push({ pathname: '/sitter/[id]', params: { id: s.id } })} accessibilityRole="button">
           <Card>
             <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
-              <Avatar name={s.full_name} color={colorFor(s.id)} />
+              <Photo path={s.photo_path} name={s.full_name} color={colorFor(s.id)} />
               <View style={{ flex: 1, gap: 4 }}>
                 <T variant="h3">
                   {s.full_name}

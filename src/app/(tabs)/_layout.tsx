@@ -30,8 +30,9 @@ export default function TabsLayout() {
       }}>
       <Tabs.Screen name="search" options={{ title: 'חיפוש', tabBarIcon: icon('search'), href: parent ? undefined : null }} />
       <Tabs.Screen name="shifts" options={{ title: 'משמרות', tabBarIcon: icon('calendar-outline') }} />
+      <Tabs.Screen name="reports" options={{ title: parent ? 'דוחות' : 'הכנסות', tabBarIcon: icon('stats-chart-outline') }} />
       <Tabs.Screen name="profile" options={{ title: 'פרופיל', tabBarIcon: icon('person-circle-outline') }} />
-      <Tabs.Screen name="about" options={{ title: 'אודות', tabBarIcon: icon('information-circle-outline') }} />
+      <Tabs.Screen name="admin" options={{ title: 'ניהול', tabBarIcon: icon('shield-checkmark-outline'), href: profile.is_staff ? undefined : null }} />
     </Tabs>
   );
 }
