@@ -1,14 +1,16 @@
 // Emails each new message from the app's "contact the developer" box.
 //
-// Triggered by a Supabase Database Webhook on INSERT into public.feedback_messages.
+// Triggered on INSERT into public.feedback_messages by a pg_net trigger
+// (supabase/migrations/20261126000000_feedback_email_trigger.sql).
 // The developer's address lives only in the DEV_EMAIL secret on the server, so it
 // never ships inside the app.
 //
 // Secrets (Supabase → Edge Functions → Secrets):
 //   RESEND_API_KEY   API key from resend.com
 //   DEV_EMAIL        where messages are delivered
-//   MAIL_FROM        verified sender, e.g. "Somuchim <app@your-domain>"
-//   WEBHOOK_SECRET   random string; also set as the webhook's x-webhook-secret header
+//   MAIL_FROM        sender; "Somuchim <onboarding@resend.dev>" works without a domain
+//                    but only delivers to the Resend account owner's address
+//   WEBHOOK_SECRET   random string; the same value is stored in Vault as notify_feedback_secret
 // SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are provided automatically.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
