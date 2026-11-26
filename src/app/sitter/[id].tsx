@@ -1,8 +1,9 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
-import { Avatar, Card, Chip, Row, Screen, T } from '@/components/ui';
+import { Avatar, Button, Card, Chip, Row, Screen, T } from '@/components/ui';
+import { useAuth } from '@/lib/auth';
 import { colorFor, nis, type SitterCard } from '@/lib/sitters';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/lib/theme';
@@ -13,6 +14,7 @@ type Vouch = { id: string; relation: string; known_for: string; body: string };
 export default function SitterProfile() {
   const t = useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { session, activeRole } = useAuth();
   const [s, setS] = useState<SitterCard | null | undefined>(undefined);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [vouches, setVouches] = useState<Vouch[]>([]);
@@ -106,14 +108,12 @@ export default function SitterProfile() {
         )}
       </Card>
 
-      {s.hourly_rate ? (
-        <Card soft>
-          <Row style={{ justifyContent: 'space-between' }}>
-            <T variant="h3">{nis(s.hourly_rate)} לשעה</T>
-            <T variant="muted">בקשת שמירה – בשלב הבא</T>
-          </Row>
-        </Card>
-      ) : null}
+      <Card soft>
+        {s.hourly_rate ? <T variant="h3">{nis(s.hourly_rate)} לשעה</T> : null}
+        {activeRole === 'parent' && session?.user.id !== s.id ? (
+          <Button title="שליחת בקשת שמירה" onPress={() => router.push({ pathname: '/request/[sitterId]', params: { sitterId: s.id } })} />
+        ) : null}
+      </Card>
     </Screen>
   );
 }

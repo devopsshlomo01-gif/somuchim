@@ -39,10 +39,11 @@ export default function Welcome() {
     router.replace(roles.includes('parent') ? '/search' : '/profile');
   }
 
-  const RoleBox = ({ r, title, sub }: { r: Role; title: string; sub: string }) => {
+  const roleBox = (r: Role, title: string, sub: string) => {
     const on = roles.includes(r);
     return (
       <Pressable
+        key={r}
         onPress={() => toggle(r)}
         accessibilityRole="checkbox"
         accessibilityState={{ checked: on }}
@@ -75,8 +76,8 @@ export default function Welcome() {
           אני כאן בתור
         </T>
         <View style={{ flexDirection: 'row', gap: 10 }}>
-          <RoleBox r="parent" title="הורה" sub="מחפש/ת בייביסיטר" />
-          <RoleBox r="sitter" title="בייביסיטר" sub="מחפש/ת עבודה" />
+          {roleBox('parent', 'הורה', 'מחפש/ת בייביסיטר')}
+          {roleBox('sitter', 'בייביסיטר', 'מחפש/ת עבודה')}
         </View>
         <T variant="muted">אפשר לבחור את שניהם, ולשנות בכל זמן.</T>
         {roles.includes('sitter') ? (

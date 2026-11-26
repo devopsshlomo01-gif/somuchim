@@ -6,9 +6,11 @@ import { useAuth } from '@/lib/auth';
 import { useTheme } from '@/lib/theme';
 
 type Icon = ComponentProps<typeof Ionicons>['name'];
-const icon =
-  (name: Icon) =>
-  ({ color, size }: { color: unknown; size: number }) => <Ionicons name={name} color={color as string} size={size} />;
+function icon(name: Icon) {
+  return function TabIcon({ color, size }: { color: unknown; size: number }) {
+    return <Ionicons name={name} color={color as string} size={size} />;
+  };
+}
 
 export default function TabsLayout() {
   const t = useTheme();

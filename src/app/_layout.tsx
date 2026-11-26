@@ -31,6 +31,7 @@ function Navigator() {
         contentStyle: { backgroundColor: t.bg },
       }}>
       <Stack.Screen name="sitter/[id]" options={{ headerShown: true, title: '', headerBackTitle: 'חזרה' }} />
+      <Stack.Screen name="request/[sitterId]" options={{ headerShown: true, title: 'בקשת שמירה', headerBackTitle: 'חזרה' }} />
     </Stack>
   );
 }

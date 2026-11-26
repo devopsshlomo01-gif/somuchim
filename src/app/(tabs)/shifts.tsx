@@ -1,75 +1,186 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { View } from 'react-native';
+import { Alert, RefreshControl, ScrollView, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { Card, Chip, Row, Screen, T } from '@/components/ui';
+import { Button, Card, Chip, Row, T } from '@/components/ui';
 import { useAuth } from '@/lib/auth';
+import {
+  dayLabel,
+  durationMinutes,
+  hhmm,
+  hoursLabel,
+  REQUEST_STATUS,
+  SHIFT_STATUS,
+  type RequestCard,
+  type ShiftCard,
+} from '@/lib/booking';
 import { nis } from '@/lib/sitters';
 import { supabase } from '@/lib/supabase';
-
-type Shift = { id: string; starts_at: string; ends_at: string; hourly_rate: number; status: string };
-
-const STATUS: Record<string, [string, 'acc' | 'ok' | 'warn' | 'honey' | 'plain']> = {
-  scheduled: ['מתוכננת', 'acc'],
-  in_progress: ['בפעילות', 'ok'],
-  unpaid: ['ממתין לתשלום', 'warn'],
-  reported: ['ההורה דיווח תשלום', 'honey'],
-  confirmed: ['שולם ואושר', 'ok'],
-  cancelled: ['בוטלה', 'plain'],
-};
+import { useTheme } from '@/lib/theme';
 
 export default function Shifts() {
+  const t = useTheme();
   const { session, activeRole } = useAuth();
-  const [shifts, setShifts] = useState<Shift[]>([]);
+  const { sent } = useLocalSearchParams<{ sent?: string }>();
+  const [requests, setRequests] = useState<RequestCard[]>([]);
+  const [shifts, setShifts] = useState<ShiftCard[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notice, setNotice] = useState(sent ? 'הבקשה נשלחה. נעדכן כשתאשר.' : '');
+
+  const me = session!.user.id;
+  const isSitter = activeRole === 'sitter';
+  const col = isSitter ? 'sitter_id' : 'parent_id';
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const [r, s] = await Promise.all([
+      supabase.from('request_cards').select('*').eq(col, me).order('created_at', { ascending: false }).limit(30),
+      supabase.from('shift_cards').select('*').eq(col, me).order('starts_at', { ascending: false }).limit(50),
+    ]);
+    setRequests((r.data as RequestCard[]) ?? []);
+    setShifts((s.data as ShiftCard[]) ?? []);
+    setLoading(false);
+  }, [col, me]);
 
   useFocusEffect(
     useCallback(() => {
-      const col = activeRole === 'sitter' ? 'sitter_id' : 'parent_id';
-      supabase
-        .from('shifts')
-        .select('id, starts_at, ends_at, hourly_rate, status')
-        .eq(col, session!.user.id)
-        .order('starts_at', { ascending: false })
-        .limit(50)
-        .then(({ data }) => setShifts((data as Shift[]) ?? []));
-    }, [activeRole, session]),
+      load();
+    }, [load]),
   );
 
-  const fmt = (d: string) =>
-    new Date(d).toLocaleString('he-IL', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+  async function respond(id: string, accept: boolean) {
+    setBusyId(id);
+    const { error } = await supabase.rpc('respond_to_request', { request_id: id, accept });
+    setBusyId(null);
+    if (error) {
+      Alert.alert('לא הצלחנו לעדכן', 'ייתכן שהבקשה כבר טופלה. נסו לרענן.');
+    } else {
+      setNotice(accept ? 'אישרת את הבקשה. המשמרת נוספה לרשימה.' : 'הבקשה נדחתה.');
+    }
+    load();
+  }
+
+  function cancel(id: string) {
+    Alert.alert('ביטול בקשה', 'לבטל את הבקשה?', [
+      { text: 'לא', style: 'cancel' },
+      {
+        text: 'ביטול הבקשה',
+        style: 'destructive',
+        onPress: async () => {
+          setBusyId(id);
+          await supabase.rpc('cancel_request', { request_id: id });
+          setBusyId(null);
+          load();
+        },
+      },
+    ]);
+  }
+
+  const pending = requests.filter((r) => r.status === 'pending');
+  const history = requests.filter((r) => r.status !== 'pending' && r.status !== 'accepted').slice(0, 5);
+  const fmtShift = (iso: string) =>
+    new Date(iso).toLocaleString('he-IL', {
+      timeZone: 'Asia/Jerusalem',
+      weekday: 'short',
+      day: 'numeric',
+      month: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+  const requestItem = (r: RequestCard) => {
+    const { day, date } = dayLabel(r.start_date);
+    const mins = durationMinutes(r.start_time, r.end_time);
+    const [label, tone] = REQUEST_STATUS[r.status];
+    const other = isSitter ? r.parent_name : r.sitter_name;
+    return (
+      <Card key={r.id} soft={r.status !== 'pending'}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <T variant="h3">{isSitter ? `משפחת ${other.split(' ').slice(-1)[0]}` : other}</T>
+          <Chip tone={tone} label={label} />
+        </Row>
+        <T>
+          יום {day} {date} · {hhmm(r.start_time)}–{hhmm(r.end_time)} · {hoursLabel(mins)}
+        </T>
+        <T variant="muted">
+          {r.location === 'parent_home' ? 'אצל המשפחה' : 'אצל הבייביסיטר'}
+          {r.kids ? ` · ${r.kids}` : ''}
+          {r.hourly_rate ? ` · משוער ${nis(Math.round((mins / 60) * r.hourly_rate))}` : ''}
+        </T>
+        {isSitter && r.family_about ? <T variant="small">{r.family_about}</T> : null}
+        {r.notes ? <T variant="small">הערות: {r.notes}</T> : null}
+        {r.status === 'pending' && isSitter ? (
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flex: 1 }}>
+              <Button title="אישור" onPress={() => respond(r.id, true)} loading={busyId === r.id} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Button kind="secondary" title="דחייה" onPress={() => respond(r.id, false)} disabled={busyId === r.id} />
+            </View>
+          </View>
+        ) : null}
+        {r.status === 'pending' && !isSitter ? <Button kind="link" title="ביטול הבקשה" onPress={() => cancel(r.id)} /> : null}
+      </Card>
+    );
+  };
 
   return (
-    <Screen>
-      <T variant="h2">המשמרות שלי</T>
-      {shifts.length === 0 ? (
-        <Card soft>
-          <T variant="h3">עוד אין משמרות</T>
+    <SafeAreaView style={{ flex: 1, backgroundColor: t.bg }} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={{ padding: 16, gap: 14, paddingBottom: 40 }}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={t.accent} />}>
+        {notice ? (
+          <Card soft>
+            <T style={{ color: t.ok, fontWeight: '600' }}>✓ {notice}</T>
+          </Card>
+        ) : null}
+
+        <T variant="h2">{isSitter ? 'בקשות חדשות' : 'הבקשות שלי'}</T>
+        {pending.length === 0 ? (
           <T variant="muted">
-            {activeRole === 'parent'
-              ? 'אחרי שבייביסיטר תאשר בקשת שמירה, המשמרות יופיעו כאן.'
-              : 'כשתאשרי בקשת שמירה מהורים, המשמרות יופיעו כאן.'}
+            {isSitter ? 'אין בקשות שממתינות לך.' : 'אין בקשות פתוחות. שולחים בקשה מתוך הפרופיל של בייביסיטר.'}
           </T>
-        </Card>
-      ) : (
-        shifts.map((s) => {
-          const [label, tone] = STATUS[s.status] ?? [s.status, 'plain'];
-          const hours = (new Date(s.ends_at).getTime() - new Date(s.starts_at).getTime()) / 36e5;
-          return (
-            <Card key={s.id}>
-              <Row style={{ justifyContent: 'space-between' }}>
-                <View>
-                  <T variant="h3">{fmt(s.starts_at)}</T>
-                  <T variant="muted">{hours.toFixed(1)} שעות</T>
-                </View>
-                <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <T style={{ fontWeight: '700' }}>{nis(Math.round(hours * s.hourly_rate))}</T>
-                  <Chip tone={tone} label={label} />
-                </View>
-              </Row>
-            </Card>
-          );
-        })
-      )}
-    </Screen>
+        ) : (
+          pending.map(requestItem)
+        )}
+
+        <T variant="h2">משמרות</T>
+        {shifts.length === 0 ? (
+          <T variant="muted">
+            {isSitter ? 'כשתאשרי בקשה, המשמרת תופיע כאן.' : 'אחרי שבייביסיטר תאשר בקשה, המשמרת תופיע כאן.'}
+          </T>
+        ) : (
+          shifts.map((s) => {
+            const [label, tone] = SHIFT_STATUS[s.status] ?? [s.status, 'plain'];
+            const mins = Math.round((new Date(s.ends_at).getTime() - new Date(s.starts_at).getTime()) / 60000);
+            return (
+              <Card key={s.id}>
+                <Row style={{ justifyContent: 'space-between' }}>
+                  <View style={{ gap: 2 }}>
+                    <T variant="h3">{isSitter ? `משפחת ${s.parent_name.split(' ').slice(-1)[0]}` : s.sitter_name}</T>
+                    <T variant="muted">
+                      {fmtShift(s.starts_at)} · {hoursLabel(mins)}
+                    </T>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <T style={{ fontWeight: '700' }}>{nis(Math.round((mins / 60) * s.hourly_rate))}</T>
+                    <Chip tone={tone} label={label} />
+                  </View>
+                </Row>
+              </Card>
+            );
+          })
+        )}
+
+        {history.length ? (
+          <>
+            <T variant="h3">בקשות קודמות</T>
+            {history.map(requestItem)}
+          </>
+        ) : null}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
